@@ -379,12 +379,18 @@ fun buildSharedPreferencesXml(entries: List<PrefEntry>): String {
 }
 
 fun escapeXml(value: String): String {
-    return value
-        .replace("&", "&")
-        .replace("<", "<")
-        .replace(">", ">")
-        .replace("\"", """)
-        .replace("'", "'")
+    val builder = StringBuilder(value.length)
+    value.forEach { ch ->
+        when (ch) {
+            '&' -> builder.append("&")
+            '<' -> builder.append("<")
+            '>' -> builder.append(">")
+            34.toChar() -> builder.append(""")
+            39.toChar() -> builder.append("'")
+            else -> builder.append(ch)
+        }
+    }
+    return builder.toString()
 }
 
 fun parseValueByType(value: String, type: String): Any {
