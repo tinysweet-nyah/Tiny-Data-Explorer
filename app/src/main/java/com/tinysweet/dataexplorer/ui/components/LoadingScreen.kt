@@ -1,7 +1,10 @@
 package com.tinysweet.dataexplorer.ui.components
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,11 +18,11 @@ fun LoadingScreen(message: String = "Đang tải...") {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        androidx.compose.foundation.layout.Column(
+        Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CircularProgressIndicator()
-            androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.padding(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Text(text = message)
         }
     }

@@ -1,14 +1,41 @@
 package com.tinysweet.dataexplorer.ui.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -100,8 +127,11 @@ fun SharedPreferencesDetailScreen(
                             PrefEntryItem(
                                 entry = entry,
                                 onValueChange = { newValue ->
-                                    val updatedEntries = prefsEntries.map { e ->
-                                        if (e.key == entry.key) e.copy(value = newValue) else e
+                                    val updatedEntry = entry.copy(
+                                        value = parseValueByType(newValue, entry.type)
+                                    )
+                                    val updatedEntries = prefsEntries.map { currentEntry ->
+                                        if (currentEntry.key == entry.key) updatedEntry else currentEntry
                                     }
                                     prefsEntries = updatedEntries
                                     scope.launch {
@@ -109,7 +139,9 @@ fun SharedPreferencesDetailScreen(
                                     }
                                 },
                                 onDelete = {
-                                    val updatedEntries = prefsEntries.filter { e -> e.key != entry.key }
+                                    val updatedEntries = prefsEntries.filter { currentEntry ->
+                                        currentEntry.key != entry.key
+                                    }
                                     prefsEntries = updatedEntries
                                     scope.launch {
                                         saveSharedPreferences(prefsFilePath, updatedEntries)
@@ -171,7 +203,7 @@ fun PrefEntryItem(
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
-                value = entry.value.toString(),
+                value = formatValueForDisplay(entry.value, entry.type),
                 onValueChange = onValueChange,
                 label = { Text(entry.type) },
                 modifier = Modifier.fillMaxWidth(),
@@ -225,14 +257,7 @@ fun AddPrefEntryDialog(
                         onAdd(
                             PrefEntry(
                                 key = key,
-                                value = when (type) {
-                                    "int" -> value.toIntOrNull() ?: 0
-                                    "float" -> value.toFloatOrNull() ?: 0f
-                                    "boolean" -> value.toBooleanStrictOrNull() ?: false
-                                    "long" -> value.toLongOrNull() ?: 0L
-                                    "string-set" -> value.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
-                                    else -> value
-                                },
+                                value = parseValueByType(value, type),
                                 type = type
                             )
                         )
@@ -276,13 +301,28 @@ fun parseSharedPreferencesXml(xmlContent: String): List<PrefEntry> {
                         val key = parser.getAttributeValue(null, "name")
                         val attrValue = parser.getAttributeValue(null, "value") ?: ""
                         if (!key.isNullOrBlank()) {
-                            val parsedValue: Any = when (type) {
-                                "int" -> attrValue.toIntOrNull() ?: 0
-                                "float" -> attrValue.toFloatOrNull() ?: 0f
-                                "boolean" -> attrValue.toBooleanStrictOrNull() ?: false
-                                else -> attrValue.toLongOrNull() ?: 0L
+                            entries.add(
+                                PrefEntry(
+                                    key = key,
+                                    value = parseValueByType(attrValue, type),
+                                    type = type
+                                )
+                            )
+                        }
+                    }
+
+                    "set" -> {
+                        val key = parser.getAttributeValue(null, "name")
+                        if (!key.isNullOrBlank()) {
+                            val values = mutableSetOf<String>()
+                            var nestedEventType = parser.next()
+                            while (!(nestedEventType == XmlPullParser.END_TAG && parser.name == "set")) {
+                                if (nestedEventType == XmlPullParser.START_TAG && parser.name == "string") {
+                                    values.add(parser.nextText())
+                                }
+                                nestedEventType = parser.next()
                             }
-                            entries.add(PrefEntry(key = key, value = parsedValue, type = type))
+                            entries.add(PrefEntry(key = key, value = values, type = "string-set"))
                         }
                     }
                 }
@@ -308,16 +348,26 @@ fun buildSharedPreferencesXml(entries: List<PrefEntry>): String {
 
     entries.forEach { entry ->
         when (entry.type) {
-            "string" -> sb.append("    <string name=\"${escapeXml(entry.key)}\">${escapeXml(entry.value.toString())}</string>\n")
-            "int" -> sb.append("    <int name=\"${escapeXml(entry.key)}\" value=\"${entry.value}\" />\n")
-            "float" -> sb.append("    <float name=\"${escapeXml(entry.key)}\" value=\"${entry.value}\" />\n")
-            "boolean" -> sb.append("    <boolean name=\"${escapeXml(entry.key)}\" value=\"${entry.value}\" />\n")
-            "long" -> sb.append("    <long name=\"${escapeXml(entry.key)}\" value=\"${entry.value}\" />\n")
+            "string" -> sb.append(
+                "    <string name=\"${escapeXml(entry.key)}\">${escapeXml(entry.value.toString())}</string>\n"
+            )
+            "int" -> sb.append(
+                "    <int name=\"${escapeXml(entry.key)}\" value=\"${entry.value}\" />\n"
+            )
+            "float" -> sb.append(
+                "    <float name=\"${escapeXml(entry.key)}\" value=\"${entry.value}\" />\n"
+            )
+            "boolean" -> sb.append(
+                "    <boolean name=\"${escapeXml(entry.key)}\" value=\"${entry.value}\" />\n"
+            )
+            "long" -> sb.append(
+                "    <long name=\"${escapeXml(entry.key)}\" value=\"${entry.value}\" />\n"
+            )
             "string-set" -> {
                 sb.append("    <set name=\"${escapeXml(entry.key)}\">\n")
-                @Suppress("UNCHECKED_CAST")
-                (entry.value as? Set<String>)?.forEach { item ->
-                    sb.append("        <string>${escapeXml(item)}</string>\n")
+                val setValues = entry.value as? Set<*> ?: emptySet<Any>()
+                setValues.forEach { item ->
+                    sb.append("        <string>${escapeXml(item.toString())}</string>\n")
                 }
                 sb.append("    </set>\n")
             }
@@ -328,12 +378,31 @@ fun buildSharedPreferencesXml(entries: List<PrefEntry>): String {
     return sb.toString()
 }
 
-fun escapeXml(s: String): String {
-    return s.replace("&", "&")
+fun escapeXml(value: String): String {
+    return value
+        .replace("&", "&")
         .replace("<", "<")
         .replace(">", ">")
-        .replace("\"", """)
-        .replace("'", "'")
+        .replace("\u0022", """)
+        .replace("\u0027", "'")
+}
+
+fun parseValueByType(value: String, type: String): Any {
+    return when (type) {
+        "int" -> value.toIntOrNull() ?: 0
+        "float" -> value.toFloatOrNull() ?: 0f
+        "boolean" -> value.equals("true", ignoreCase = true)
+        "long" -> value.toLongOrNull() ?: 0L
+        "string-set" -> value.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+        else -> value
+    }
+}
+
+fun formatValueForDisplay(value: Any, type: String): String {
+    return when (type) {
+        "string-set" -> (value as? Set<*>)?.joinToString(", ") { it.toString() } ?: ""
+        else -> value.toString()
+    }
 }
 
 data class PrefEntry(
