@@ -1,13 +1,18 @@
 package com.tinysweet.dataexplorer.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.tinysweet.dataexplorer.ui.components.LoadingScreen
-import com.tinysweet.dataexplorer.ui.utils.Icons
+import com.tinysweet.dataexplorer.ui.utils.AppIcons
 
 /**
  * ToolsScreen - Công cụ nâng cao
@@ -30,7 +35,7 @@ fun ToolsScreen(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = Modifier.weight(1f))
             IconButton(onClick = { /* Refresh */ }) {
-                Icon(icons.Refresh, contentDescription = "Làm mới")
+                Icon(AppIcons.Refresh, contentDescription = "Làm mới")
             }
         }
         
@@ -54,49 +59,49 @@ private val toolsList = listOf(
     ToolItem(
         title = "SQLite Explorer",
         description = "Khám phá và chỉnh sửa cơ sở dữ liệu SQLite",
-        icon = icons.Database,
+        icon = AppIcons.Database,
         onClick = { /* Navigate to SQLite Explorer */ }
     ),
     ToolItem(
         title = "SharedPreferences Editor",
         description = "Chỉnh sửa file cấu hình SharedPreferences",
-        icon = icons.Settings,
+        icon = AppIcons.Settings,
         onClick = { /* Navigate to SharedPreferences Editor */ }
     ),
     ToolItem(
         title = "Backup & Restore",
         description = "Sao lưu và khôi phục dữ liệu ứng dụng",
-        icon = icons.Backup,
+        icon = AppIcons.Backup,
         onClick = { /* Navigate to Backup/Restore */ }
     ),
     ToolItem(
         title = "Hex Viewer",
         description = "Xem file nhị phân dưới dạng hexadecimal",
-        icon = icons.Code,
+        icon = AppIcons.Code,
         onClick = { /* Navigate to Hex Viewer */ }
     ),
     ToolItem(
         title = "Text Editor",
         description = "Chỉnh sửa file văn bản",
-        icon = icons.Edit,
+        icon = AppIcons.Edit,
         onClick = { /* Navigate to Text Editor */ }
     ),
     ToolItem(
         title = "Recent Apps",
         description = "Lịch sử truy cập ứng dụng gần đây",
-        icon = icons.History,
+        icon = AppIcons.History,
         onClick = { /* Navigate to Recent Apps */ }
     ),
     ToolItem(
         title = "Bookmarks",
         description = "Thư mục được đánh dấu thường dùng",
-        icon = icons.Bookmark,
+        icon = AppIcons.Bookmark,
         onClick = { /* Navigate to Bookmarks */ }
     ),
     ToolItem(
         title = "Storage Analyzer",
         description = "Phân tích dung lượng sử dụng",
-        icon = icons.Storage,
+        icon = AppIcons.Storage,
         onClick = { /* Navigate to Storage Analyzer */ }
     )
 )

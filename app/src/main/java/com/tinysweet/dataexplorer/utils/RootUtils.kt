@@ -1,10 +1,8 @@
 package com.tinysweet.dataexplorer.utils
 
 import com.topjohnwu.superuser.Shell
-import com.topjohnwu.superuser.ShellUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /**
  * RootUtils - Tiện ích xử lý các thao tác root shell
@@ -12,20 +10,13 @@ import java.io.File
  */
 object RootUtils {
 
-    private var rootShell: Shell? = null
-
     /**
      * Kiểm tra thiết bị đã root chưa
      */
     suspend fun isRootAvailable(): Boolean = withContext(Dispatchers.IO) {
         try {
-            if (rootShell == null || rootShell?.isAlive == false) {
-                rootShell = Shell.Builder.create()
-                    .setFlags(Shell.FLAG_REDIRECT_STDERR)
-                    .build("su")
-            }
-            rootShell?.isAlive == true
-        } catch (e: Exception) {
+            Shell.getShell().isRoot
+        } catch (_: Exception) {
             false
         }
     }
@@ -35,9 +26,8 @@ object RootUtils {
      */
     suspend fun executeCommand(command: String): List<String> = withContext(Dispatchers.IO) {
         try {
-            val result = ShellUtils.fastCmdResult(rootShell, command)
-            result?.out ?: emptyList()
-        } catch (e: Exception) {
+            Shell.cmd(command).exec().out
+        } catch (_: Exception) {
             emptyList()
         }
     }
@@ -47,9 +37,9 @@ object RootUtils {
      */
     suspend fun executeCommands(commands: List<String>): Boolean = withContext(Dispatchers.IO) {
         try {
-            val result = rootShell?.newJob()?.add(*commands.toTypedArray())?.exec()
-            result?.isSuccess == true
-        } catch (e: Exception) {
+            val job = Shell.cmd(*commands.toTypedArray()).exec()
+            job.isSuccess
+        } catch (_: Exception) {
             false
         }
     }
@@ -59,8 +49,8 @@ object RootUtils {
      */
     suspend fun readFile(path: String): String = withContext(Dispatchers.IO) {
         try {
-            ShellUtils.fastCmd(rootShell, "cat '$path'").out.joinToString("\n")
-        } catch (e: Exception) {
+            Shell.cmd("cat '$path'").exec().out.joinToString("\n")
+        } catch (_: Exception) {
             ""
         }
     }
@@ -71,9 +61,8 @@ object RootUtils {
     suspend fun writeFile(path: String, content: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val escapedContent = content.replace("'", "'\"'\"'")
-            val result = ShellUtils.fastCmdResult(rootShell, "echo '$escapedContent' > '$path'")
-            result?.isSuccess == true
-        } catch (e: Exception) {
+            Shell.cmd("echo '$escapedContent' > '$path'").exec().isSuccess
+        } catch (_: Exception) {
             false
         }
     }
@@ -83,9 +72,9 @@ object RootUtils {
      */
     suspend fun listDirectory(path: String): List<FileInfo> = withContext(Dispatchers.IO) {
         try {
-            val result = ShellUtils.fastCmd(rootShell, "ls -la '$path'").out
-            parseLsOutput(result)
-        } catch (e: Exception) {
+            val output = Shell.cmd("ls -la '$path'").exec().out
+            parseLsOutput(output)
+        } catch (_: Exception) {
             emptyList()
         }
     }
@@ -96,7 +85,7 @@ object RootUtils {
     private fun parseLsOutput(output: List<String>): List<FileInfo> {
         val files = mutableListOf<FileInfo>()
         for (line in output) {
-            if (line.startsWith("total") || line.isEmpty()) continue
+            if (line.startsWith("total") || line.isBlank()) continue
             val parts = line.trim().split(Regex("\\s+"), limit = 9)
             if (parts.size >= 9) {
                 val permissions = parts[0]
@@ -116,94 +105,65 @@ object RootUtils {
         return files
     }
 
-    /**
-     * Xóa file/thư mục
-     */
     suspend fun deleteFile(path: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val result = ShellUtils.fastCmdResult(rootShell, "rm -rf '$path'")
-            result?.isSuccess == true
-        } catch (e: Exception) {
+            Shell.cmd("rm -rf '$path'").exec().isSuccess
+        } catch (_: Exception) {
             false
         }
     }
 
-    /**
-     * Copy file
-     */
     suspend fun copyFile(source: String, destination: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val result = ShellUtils.fastCmdResult(rootShell, "cp -r '$source' '$destination'")
-            result?.isSuccess == true
-        } catch (e: Exception) {
+            Shell.cmd("cp -r '$source' '$destination'").exec().isSuccess
+        } catch (_: Exception) {
             false
         }
     }
 
-    /**
-     * Di chuyển file
-     */
     suspend fun moveFile(source: String, destination: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val result = ShellUtils.fastCmdResult(rootShell, "mv '$source' '$destination'")
-            result?.isSuccess == true
-        } catch (e: Exception) {
+            Shell.cmd("mv '$source' '$destination'").exec().isSuccess
+        } catch (_: Exception) {
             false
         }
     }
 
-    /**
-     * Tạo thư mục
-     */
     suspend fun createDirectory(path: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val result = ShellUtils.fastCmdResult(rootShell, "mkdir -p '$path'")
-            result?.isSuccess == true
-        } catch (e: Exception) {
+            Shell.cmd("mkdir -p '$path'").exec().isSuccess
+        } catch (_: Exception) {
             false
         }
     }
 
-    /**
-     * Nén thư mục thành zip
-     */
     suspend fun zipDirectory(sourceDir: String, outputZip: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val result = ShellUtils.fastCmdResult(rootShell, "cd '${sourceDir.substringBeforeLast("/")}' && zip -r '$outputZip' '${sourceDir.substringAfterLast("/")}'")
-            result?.isSuccess == true
-        } catch (e: Exception) {
+            val parent = sourceDir.substringBeforeLast("/")
+            val child = sourceDir.substringAfterLast("/")
+            Shell.cmd("cd '$parent' && zip -r '$outputZip' '$child'").exec().isSuccess
+        } catch (_: Exception) {
             false
         }
     }
 
-    /**
-     * Giải nén zip
-     */
     suspend fun unzipFile(zipFile: String, destinationDir: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val result = ShellUtils.fastCmdResult(rootShell, "unzip -o '$zipFile' -d '$destinationDir'")
-            result?.isSuccess == true
-        } catch (e: Exception) {
+            Shell.cmd("unzip -o '$zipFile' -d '$destinationDir'").exec().isSuccess
+        } catch (_: Exception) {
             false
         }
     }
 
-    /**
-     * Lấy dung lượng thư mục
-     */
     suspend fun getDirectorySize(path: String): String = withContext(Dispatchers.IO) {
         try {
-            ShellUtils.fastCmd(rootShell, "du -sh '$path' | cut -f1").out.firstOrNull() ?: "Unknown"
-        } catch (e: Exception) {
+            Shell.cmd("du -sh '$path' | cut -f1").exec().out.firstOrNull() ?: "Unknown"
+        } catch (_: Exception) {
             "Unknown"
         }
     }
 
-    /**
-     * Đóng root shell
-     */
     fun closeShell() {
-        rootShell?.close()
-        rootShell = null
+        // No-op: libsu handles shell lifecycle internally.
     }
 }

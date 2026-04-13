@@ -1,24 +1,27 @@
 package com.tinysweet.dataexplorer.ui.screens
 
 import android.content.Context
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.SettingsBackupRestore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.tinysweet.dataexplorer.utils.BackupInfo
 import com.tinysweet.dataexplorer.utils.RootUtils
-import com.tinysweet.dataexplorer.ui.utils.Icons
 import kotlinx.coroutines.launch
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * BackupRestoreScreen - Sao lưu và khôi phục dữ liệu ứng dụng
@@ -36,10 +39,9 @@ fun BackupRestoreScreen(
     var showBackupDialog by remember { mutableStateOf(false) }
     var showRestoreDialog by remember { mutableStateOf(false) }
     var selectedBackup by remember { mutableStateOf<BackupInfo?>(null) }
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    
-    // Load existing backups
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(appPackageName) {
         isLoading = true
         errorMessage = null
@@ -51,7 +53,7 @@ fun BackupRestoreScreen(
             isLoading = false
         }
     }
-    
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -71,26 +73,34 @@ fun BackupRestoreScreen(
             )
         }
     ) { padding ->
-        Column(modifier = modifier.fillMaxSize().padding(padding)) {
-            if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
-            } else if (errorMessage != null) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = errorMessage ?: "Lỗi không xác định",
-                        color = MaterialTheme.colorScheme.error
-                    )
+
+                errorMessage != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = errorMessage ?: "Lỗi không xác định",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
-            } else {
-                if (backups.isEmpty()) {
+
+                backups.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -108,13 +118,15 @@ fun BackupRestoreScreen(
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             Text(
-                                text = "Nhấn nút + để tạo bản sao lưu mới",
+                                text = "Nhấn nút Sao lưu để tạo bản sao lưu mới",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-                } else {
+                }
+
+                else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(8.dp),
@@ -128,10 +140,16 @@ fun BackupRestoreScreen(
                                     showRestoreDialog = true
                                 },
                                 onDelete = {
-                                    // Delete backup
                                     scope.launch {
-                                        deleteBackup(context, backup)
-                                        backups = loadBackups(context, appPackageName)
+                                        isLoading = true
+                                        try {
+                                            deleteBackup(context, backup)
+                                            backups = loadBackups(context, appPackageName)
+                                        } catch (e: Exception) {
+                                            errorMessage = "Xóa bản sao lưu thất bại: ${e.message}"
+                                        } finally {
+                                            isLoading = false
+                                        }
                                     }
                                 }
                             )
@@ -141,18 +159,21 @@ fun BackupRestoreScreen(
             }
         }
     }
-    
-    // Backup Dialog
+
     if (showBackupDialog) {
         BackupDialog(
-            appPackageName = appPackageName,
             onBackup = { backupName ->
                 scope.launch {
                     isLoading = true
+                    errorMessage = null
                     try {
-                        createBackup(context, appPackageName, backupName)
-                        backups = loadBackups(context, appPackageName)
-                        showBackupDialog = false
+                        val created = createBackup(context, appPackageName, backupName)
+                        if (created) {
+                            backups = loadBackups(context, appPackageName)
+                            showBackupDialog = false
+                        } else {
+                            errorMessage = "Sao lưu thất bại"
+                        }
                     } catch (e: Exception) {
                         errorMessage = "Sao lưu thất bại: ${e.message}"
                     } finally {
@@ -163,18 +184,21 @@ fun BackupRestoreScreen(
             onDismiss = { showBackupDialog = false }
         )
     }
-    
-    // Restore Dialog
+
     if (showRestoreDialog && selectedBackup != null) {
         RestoreDialog(
             backup = selectedBackup!!,
-            appPackageName = appPackageName,
             onRestore = {
                 scope.launch {
                     isLoading = true
+                    errorMessage = null
                     try {
-                        restoreBackup(context, appPackageName, selectedBackup!!)
-                        showRestoreDialog = false
+                        val restored = restoreBackup(context, appPackageName, selectedBackup!!)
+                        if (restored) {
+                            showRestoreDialog = false
+                        } else {
+                            errorMessage = "Khôi phục thất bại"
+                        }
                     } catch (e: Exception) {
                         errorMessage = "Khôi phục thất bại: ${e.message}"
                     } finally {
@@ -241,12 +265,11 @@ fun BackupItem(
 
 @Composable
 fun BackupDialog(
-    appPackageName: String,
     onBackup: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var backupName by remember { mutableStateOf("") }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Tạo bản sao lưu") },
@@ -270,7 +293,7 @@ fun BackupDialog(
             TextButton(
                 onClick = {
                     if (backupName.isNotBlank()) {
-                        onBackup(backupName)
+                        onBackup(backupName.trim())
                     }
                 }
             ) {
@@ -288,7 +311,6 @@ fun BackupDialog(
 @Composable
 fun RestoreDialog(
     backup: BackupInfo,
-    appPackageName: String,
     onRestore: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -312,7 +334,9 @@ fun RestoreDialog(
         confirmButton = {
             TextButton(
                 onClick = onRestore,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
             ) {
                 Text("Khôi phục")
             }
@@ -338,23 +362,20 @@ suspend fun createBackup(
     if (!backupDir.exists()) {
         backupDir.mkdirs()
     }
-    
+
     val backupFile = File(backupDir, "$backupName.zip")
-    
-    // Sử dụng root để nén thư mục data
     val success = RootUtils.zipDirectory(dataPath, backupFile.absolutePath)
-    
+
     if (success) {
-        // Lưu thông tin backup
         val infoFile = File(backupDir, "$backupName.info")
         infoFile.writeText(
             "name=$backupName\n" +
-            "date=${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}\n" +
-            "package=$appPackageName\n" +
-            "size=${backupFile.length()}"
+                "date=${SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(Date())}\n" +
+                "package=$appPackageName\n" +
+                "size=${backupFile.length()}"
         )
     }
-    
+
     return success
 }
 
@@ -369,12 +390,9 @@ suspend fun restoreBackup(
     val backupDir = File(context.getExternalFilesDir(null), "backups/$appPackageName")
     val backupFile = File(backupDir, backup.fileName)
     val dataPath = "/data/data/$appPackageName"
-    
-    // Xóa dữ liệu cũ
+
     RootUtils.deleteFile(dataPath)
     RootUtils.createDirectory(dataPath)
-    
-    // Giải nén backup
     return RootUtils.unzipFile(backupFile.absolutePath, dataPath)
 }
 
@@ -384,29 +402,32 @@ suspend fun restoreBackup(
 fun loadBackups(context: Context, appPackageName: String): List<BackupInfo> {
     val backups = mutableListOf<BackupInfo>()
     val backupDir = File(context.getExternalFilesDir(null), "backups/$appPackageName")
-    
+
     if (backupDir.exists()) {
-        backupDir.listFiles { file -> file.extension == "zip" }?.forEach { zipFile ->
-            val infoFile = File(backupDir, "${zipFile.nameWithoutExtension}.info")
-            if (infoFile.exists()) {
-                val info = infoFile.readLines().associate { line ->
-                    val parts = line.split("=", limit = 2)
-                    if (parts.size == 2) parts[0] to parts[1] else "" to ""
+        backupDir.listFiles { file -> file.extension.equals("zip", ignoreCase = true) }
+            ?.forEach { zipFile ->
+                val infoFile = File(backupDir, "${zipFile.nameWithoutExtension}.info")
+                val info = if (infoFile.exists()) {
+                    infoFile.readLines().mapNotNull { line ->
+                        val parts = line.split("=", limit = 2)
+                        if (parts.size == 2) parts[0] to parts[1] else null
+                    }.toMap()
+                } else {
+                    emptyMap()
                 }
-                
+
                 backups.add(
                     BackupInfo(
                         name = info["name"] ?: zipFile.nameWithoutExtension,
                         fileName = zipFile.name,
                         date = info["date"] ?: "Unknown",
                         size = info["size"]?.toLongOrNull() ?: zipFile.length(),
-                        package_name = appPackageName
+                        packageName = info["package"] ?: appPackageName
                     )
                 )
             }
-        }
     }
-    
+
     return backups.sortedByDescending { it.date }
 }
 
@@ -414,11 +435,20 @@ fun loadBackups(context: Context, appPackageName: String): List<BackupInfo> {
  * Xóa bản sao lưu
  */
 suspend fun deleteBackup(context: Context, backup: BackupInfo): Boolean {
-    val backupDir = File(context.getExternalFilesDir(null), "backups/${backup.package_name}")
+    val backupDir = File(context.getExternalFilesDir(null), "backups/${backup.packageName}")
     val zipFile = File(backupDir, backup.fileName)
     val infoFile = File(backupDir, "${backup.fileName.substringBeforeLast(".")}.info")
-    
-    return zipFile.delete() && infoFile.delete()
+
+    val zipDeleted = !zipFile.exists() || zipFile.delete()
+    val infoDeleted = !infoFile.exists() || infoFile.delete()
+    return zipDeleted && infoDeleted
+}
+
+fun formatFileSize(size: Long): String = when {
+    size < 1024L -> "$size B"
+    size < 1024L * 1024L -> String.format(Locale.US, "%.1f KB", size / 1024f)
+    size < 1024L * 1024L * 1024L -> String.format(Locale.US, "%.1f MB", size / (1024f * 1024f))
+    else -> String.format(Locale.US, "%.1f GB", size / (1024f * 1024f * 1024f))
 }
 
 /**
@@ -429,5 +459,5 @@ data class BackupInfo(
     val fileName: String,
     val date: String,
     val size: Long,
-    val package_name: String
+    val packageName: String
 )

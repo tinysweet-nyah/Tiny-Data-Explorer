@@ -1,23 +1,23 @@
 package com.tinysweet.dataexplorer.ui.screens
 
-import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tinysweet.dataexplorer.utils.RootUtils
 import com.tinysweet.dataexplorer.utils.SharedPreferencesInfo
-import com.tinysweet.dataexplorer.ui.utils.Icons
-import kotlinx.coroutines.launch
 
 /**
  * SharedPreferencesEditorScreen - Chỉnh sửa file SharedPreferences
@@ -31,7 +31,6 @@ fun SharedPreferencesEditorScreen(
     var prefsFiles by remember { mutableStateOf<List<SharedPreferencesInfo>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     
     // Load SharedPreferences files
@@ -190,11 +189,11 @@ fun SharedPreferencesItem(
 /**
  * Load SharedPreferences files từ thư mục app data
  */
-fun loadSharedPreferencesFiles(packageName: String): List<SharedPreferencesInfo> {
+suspend fun loadSharedPreferencesFiles(packageName: String): List<SharedPreferencesInfo> {
     val prefsPath = "/data/data/$packageName/shared_prefs"
     val files = RootUtils.listDirectory(prefsPath)
-    
-    return files.filter { it.isDirectory == false && it.name.endsWith(".xml") }
+
+    return files.filter { !it.isDirectory && it.name.endsWith(".xml") }
         .map { file ->
             SharedPreferencesInfo(
                 name = file.name.substringBeforeLast(".xml"),

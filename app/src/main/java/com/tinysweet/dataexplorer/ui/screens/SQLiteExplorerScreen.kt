@@ -1,23 +1,46 @@
 package com.tinysweet.dataexplorer.ui.screens
 
-import android.content.Context
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tinysweet.dataexplorer.utils.DatabaseInfo
 import com.tinysweet.dataexplorer.utils.RootUtils
-import com.tinysweet.dataexplorer.ui.utils.Icons
-import kotlinx.coroutines.launch
 
 /**
  * SQLiteExplorerScreen - Khám phá và chỉnh sửa cơ sở dữ liệu SQLite
@@ -26,68 +49,74 @@ import kotlinx.coroutines.launch
 @Composable
 fun SQLiteExplorerScreen(
     modifier: Modifier = Modifier,
-    appPackageName: String
+    appPackageName: String,
+    onBack: () -> Unit = {}
 ) {
     var databases by remember { mutableStateOf<List<DatabaseInfo>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    
-    // Load databases khi vào màn hình
+
     LaunchedEffect(appPackageName) {
         isLoading = true
         errorMessage = null
-        try {
-            databases = loadDatabases(appPackageName)
+        databases = try {
+            loadDatabases(appPackageName)
         } catch (e: Exception) {
             errorMessage = "Không thể tải cơ sở dữ liệu: ${e.message}"
-        } finally {
-            isLoading = false
+            emptyList()
         }
+        isLoading = false
     }
-    
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("SQLite Explorer") },
                 navigationIcon = {
-                    IconButton(onClick = { /* Navigate back */ }) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
                     }
                 }
             )
         }
     ) { padding ->
-        Column(modifier = modifier.fillMaxSize().padding(padding)) {
-            if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (errorMessage != null) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Error,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = errorMessage ?: "Lỗi không xác định",
-                            color = MaterialTheme.colorScheme.error
-                        )
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
-            } else {
-                if (databases.isEmpty()) {
+
+                errorMessage != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Error,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = errorMessage ?: "Lỗi không xác định",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+
+                databases.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -105,25 +134,26 @@ fun SQLiteExplorerScreen(
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             Text(
-                                text = "Trong thư mục /data/data/$appPackageName/",
+                                text = "Trong thư mục /data/data/$appPackageName/databases",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-                } else {
+                }
+
+                else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(8.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        items(databases, key = { it.name }) { db ->
+                        items(databases, key = { it.path }) { db ->
                             DatabaseItem(
                                 database = db,
                                 onClick = {
-                                    // Navigate to table list for this database
-                                },
-                                appPackageName = appPackageName
+                                    // TODO: điều hướng sang danh sách bảng
+                                }
                             )
                         }
                     }
@@ -136,8 +166,7 @@ fun SQLiteExplorerScreen(
 @Composable
 fun DatabaseItem(
     database: DatabaseInfo,
-    onClick: () -> Unit,
-    appPackageName: String
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -146,7 +175,7 @@ fun DatabaseItem(
             .padding(horizontal = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
+        androidx.compose.foundation.layout.Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
@@ -166,12 +195,12 @@ fun DatabaseItem(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Kích thước: ${formatFileSize(database.size)}",
+                    text = "Kích thước: ${formatDatabaseFileSize(database.size)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Sửa đổi: ${database.lastModified}",
+                    text = "Sửa đổi: ${database.lastModified.ifBlank { "Không rõ" }}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -186,38 +215,23 @@ fun DatabaseItem(
     }
 }
 
-/**
- * Load databases từ thư mục app data
- */
-fun loadDatabases(packageName: String): List<DatabaseInfo> {
+suspend fun loadDatabases(packageName: String): List<DatabaseInfo> {
     val dbPath = "/data/data/$packageName/databases"
     val files = RootUtils.listDirectory(dbPath)
-    
-    return files.filter { it.isDirectory == false && it.name.endsWith(".db") }
+
+    return files
+        .filter { !it.isDirectory && it.name.endsWith(".db", ignoreCase = true) }
         .map { file ->
             DatabaseInfo(
                 name = file.name,
                 path = "$dbPath/${file.name}",
                 size = file.size,
-                lastModified = "" // TODO: Get actual last modified time
+                lastModified = ""
             )
         }
 }
 
-/**
- * Thông tin cơ sở dữ liệu
- */
-data class DatabaseInfo(
-    val name: String,
-    val path: String,
-    val size: Long,
-    val lastModified: String
-)
-
-/**
- * Format kích thước file
- */
-fun formatFileSize(size: Long): String = when {
+fun formatDatabaseFileSize(size: Long): String = when {
     size < 1024 -> "$size B"
     size < 1024 * 1024 -> "${size / 1024} KB"
     size < 1024 * 1024 * 1024 -> "${size / (1024 * 1024)} MB"

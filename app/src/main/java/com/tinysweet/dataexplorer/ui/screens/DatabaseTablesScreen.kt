@@ -1,26 +1,25 @@
 package com.tinysweet.dataexplorer.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.tinysweet.dataexplorer.utils.RootUtils
 
-/**
- * DatabaseTablesScreen - Hiển thị và quản lý các bảng trong SQLite database
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatabaseTablesScreen(
@@ -32,9 +31,7 @@ fun DatabaseTablesScreen(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedTable by remember { mutableStateOf<TableInfo?>(null) }
-    val scope = rememberCoroutineScope()
-    
-    // Load tables when entering screen
+
     LaunchedEffect(databasePath) {
         isLoading = true
         errorMessage = null
@@ -46,43 +43,49 @@ fun DatabaseTablesScreen(
             isLoading = false
         }
     }
-    
+
     if (selectedTable != null) {
-        // Show table data
         TableDataScreen(
             databasePath = databasePath,
             tableName = selectedTable!!.name,
             onBack = { selectedTable = null }
         )
-    } else {
-        Scaffold(
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text(databaseName) },
-                    navigationIcon = {
-                        IconButton(onClick = { /* Navigate back */ }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = {
-                            // Execute custom query
-                        }) {
-                            Icon(Icons.Default.Sql, contentDescription = "SQL Query")
-                        }
+        return
+    }
+
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(databaseName) },
+                navigationIcon = {
+                    IconButton(onClick = { }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
                     }
-                )
-            }
-        ) { padding ->
-            Column(modifier = modifier.fillMaxSize().padding(padding)) {
-                if (isLoading) {
+                },
+                actions = {
+                    IconButton(onClick = { }) {
+                        Icon(Icons.Default.Code, contentDescription = "SQL Query")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            when {
+                isLoading -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator()
                     }
-                } else if (errorMessage != null) {
+                }
+
+                errorMessage != null -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -92,7 +95,9 @@ fun DatabaseTablesScreen(
                             color = MaterialTheme.colorScheme.error
                         )
                     }
-                } else {
+                }
+
+                else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(8.dp),
@@ -101,8 +106,7 @@ fun DatabaseTablesScreen(
                         items(tables, key = { it.name }) { table ->
                             TableCard(
                                 table = table,
-                                onClick = { selectedTable = table },
-                                databasePath = databasePath
+                                onClick = { selectedTable = table }
                             )
                         }
                     }
@@ -115,8 +119,7 @@ fun DatabaseTablesScreen(
 @Composable
 fun TableCard(
     table: TableInfo,
-    onClick: () -> Unit,
-    databasePath: String
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -160,9 +163,6 @@ fun TableCard(
     }
 }
 
-/**
- * TableDataScreen - Hiển thị dữ liệu bảng
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TableDataScreen(
@@ -171,31 +171,29 @@ fun TableDataScreen(
     onBack: () -> Unit
 ) {
     var columns by remember { mutableStateOf<List<String>>(emptyList()) }
-    var rows by remember { mutableStateOf<List<List<Any>>>(emptyList()) }
+    var rows by remember { mutableStateOf<List<List<Any?>>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var queryText by remember { mutableStateOf("") }
     var showQueryDialog by remember { mutableStateOf(false) }
-    
+
     LaunchedEffect(tableName, databasePath) {
         isLoading = true
         try {
-            // Get table info using sqlite3 command
-            val schemaQuery = "sqlite3 '$databasePath' '.schema $tableName'"
-            val schema = RootUtils.readFile(databasePath)
-            
+            val schemaQuery = "sqlite3 '$databasePath' \".schema $tableName\""
+            val schema = RootUtils.executeCommand(schemaQuery).joinToString("\n")
             columns = getColumnsFromSchema(schema)
-            
-            // Get all data
-            val selectQuery = "sqlite3 '$databasePath' 'SELECT * FROM $tableName'"
-            val data = RootUtils.readFile(databasePath)
+
+            val selectQuery = "sqlite3 '$databasePath' -separator '|' \"SELECT * FROM $tableName\""
+            val data = RootUtils.executeCommand(selectQuery).joinToString("\n")
             rows = parseSqliteData(data, columns.size)
-        } catch (e: Exception) {
-            // Handle error
+        } catch (_: Exception) {
+            columns = emptyList()
+            rows = emptyList()
         } finally {
             isLoading = false
         }
     }
-    
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -207,18 +205,20 @@ fun TableDataScreen(
                 },
                 actions = {
                     IconButton(onClick = { showQueryDialog = true }) {
-                        Icon(Icons.Default.Sql, contentDescription = "SQL Query")
+                        Icon(Icons.Default.Code, contentDescription = "SQL Query")
                     }
-                    IconButton(onClick = {
-                        // Export to CSV
-                    }) {
-                        Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
+                    IconButton(onClick = { }) {
+                        Icon(Icons.Default.Download, contentDescription = "Export CSV")
                     }
                 }
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
             if (isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -227,7 +227,6 @@ fun TableDataScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                // Column headers
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -243,23 +242,22 @@ fun TableDataScreen(
                         )
                     }
                 }
-                
+
                 HorizontalDivider()
-                
-                // Data rows
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .horizontalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
-                    items(rows.size) { rowIndex ->
+                    items(rows) { row ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(8.dp)
                         ) {
-                            rows[rowIndex].forEach { value ->
+                            row.forEach { value ->
                                 Text(
                                     text = value?.toString() ?: "NULL",
                                     style = MaterialTheme.typography.bodySmall,
@@ -273,8 +271,7 @@ fun TableDataScreen(
             }
         }
     }
-    
-    // Query Dialog
+
     if (showQueryDialog) {
         AlertDialog(
             onDismissRequest = { showQueryDialog = false },
@@ -297,10 +294,7 @@ fun TableDataScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    // Execute query
-                    showQueryDialog = false
-                }) {
+                TextButton(onClick = { showQueryDialog = false }) {
                     Text("Thực thi")
                 }
             },
@@ -313,95 +307,85 @@ fun TableDataScreen(
     }
 }
 
-/**
- * Th��ng tin bảng SQLite
- */
 data class TableInfo(
     val name: String,
     val columns: List<String>,
     val rowCount: Int
 )
 
-/**
- * Load tables từ SQLite database
- */
-fun loadTables(databasePath: String): List<TableInfo> {
+suspend fun loadTables(databasePath: String): List<TableInfo> {
     val tables = mutableListOf<TableInfo>()
-    
+
     try {
-        // Get list of tables
         val listTablesCmd = "sqlite3 '$databasePath' \".tables\""
-        val tablesList = RootUtils.readFile(databasePath)
-        
+        val tablesList = RootUtils.executeCommand(listTablesCmd).joinToString("\n")
+
         if (tablesList.isNotBlank()) {
             tablesList.trim().split(Regex("\\s+")).forEach { tableName ->
                 if (tableName.isNotBlank()) {
-                    // Get row count
                     val countCmd = "sqlite3 '$databasePath' \"SELECT COUNT(*) FROM $tableName\""
-                    val countStr = RootUtils.readFile(databasePath)
-                    val rowCount = countStr.trim().toIntOrNull() ?: 0
-                    
-                    // Get column info
+                    val countStr = RootUtils.executeCommand(countCmd).firstOrNull()?.trim().orEmpty()
+                    val rowCount = countStr.toIntOrNull() ?: 0
+
                     val schemaCmd = "sqlite3 '$databasePath' \".schema $tableName\""
-                    val schema = RootUtils.readFile(databasePath)
+                    val schema = RootUtils.executeCommand(schemaCmd).joinToString("\n")
                     val columns = getColumnsFromSchema(schema)
-                    
+
                     tables.add(TableInfo(tableName, columns, rowCount))
                 }
             }
         }
-    } catch (e: Exception) {
-        // Handle error
+    } catch (_: Exception) {
+        return emptyList()
     }
-    
+
     return tables
 }
 
-/**
- * Get columns from CREATE TABLE schema
- */
 fun getColumnsFromSchema(schema: String): List<String> {
     val columns = mutableListOf<String>()
-    val createMatch = Regex("""CREATE\s+TABLE\s+\w+\s*\(([^)]+)\)""", RegexOption.IGNORE_CASE)
+    val createMatch = Regex("""CREATE\s+TABLE\s+[`\"]?\w+[`\"]?\s*\(([^)]+)\)""", RegexOption.IGNORE_CASE)
     val match = createMatch.find(schema)
-    
+
     if (match != null) {
         val columnsDef = match.groupValues[1]
         columnsDef.split(",").forEach { col ->
-            val colName = col.trim().split(Regex("\\s+"))[0]
-            if (colName.isNotBlank() && !colName.startsWith("PRIMARY") && 
-                !colName.startsWith("FOREIGN") && !colName.startsWith("UNIQUE") &&
-                !colName.startsWith("CHECK") && !colName.startsWith("CONSTRAINT")) {
+            val colName = col.trim().split(Regex("\\s+")).firstOrNull()?.trim('`', '"') ?: ""
+            if (colName.isNotBlank() &&
+                !colName.startsWith("PRIMARY", ignoreCase = true) &&
+                !colName.startsWith("FOREIGN", ignoreCase = true) &&
+                !colName.startsWith("UNIQUE", ignoreCase = true) &&
+                !colName.startsWith("CHECK", ignoreCase = true) &&
+                !colName.startsWith("CONSTRAINT", ignoreCase = true)
+            ) {
                 columns.add(colName)
             }
         }
     }
-    
+
     return columns
 }
 
-/**
- * Parse SQLite data output
- */
-fun parseSqliteData(data: String, columnCount: Int): List<List<Any>> {
-    val rows = mutableListOf<List<Any>>()
-    val lines = data.lines()
-    
-    lines.forEach { line ->
+fun parseSqliteData(data: String, columnCount: Int): List<List<Any?>> {
+    if (columnCount <= 0) return emptyList()
+
+    val rows = mutableListOf<List<Any?>>()
+    data.lines().forEach { line ->
         if (line.isNotBlank()) {
             val values = line.split("|").map { it.trim() }
             if (values.size == columnCount) {
-                rows.add(values.map { 
-                    when {
-                        it == "" || it == "NULL" -> null
-                        it.toIntOrNull() != null -> it.toInt()
-                        it.toDoubleOrNull() != null -> it.toDouble()
-                        else -> it
+                rows.add(
+                    values.map {
+                        when {
+                            it.isEmpty() || it == "NULL" -> null
+                            it.toIntOrNull() != null -> it.toInt()
+                            it.toDoubleOrNull() != null -> it.toDouble()
+                            else -> it
+                        }
                     }
-                })
+                )
             }
         }
     }
-    
     return rows
 }

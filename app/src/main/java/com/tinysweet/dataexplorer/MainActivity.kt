@@ -9,6 +9,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 import com.tinysweet.dataexplorer.ui.theme.RootForgeDataExplorerTheme
 import com.tinysweet.dataexplorer.ui.components.LoadingScreen
 import com.tinysweet.dataexplorer.ui.components.RootRequestScreen
@@ -44,13 +46,16 @@ fun AppContent() {
     var isRooted by remember { mutableStateOf(false) }
     var isChecking by remember { mutableStateOf(true) }
     
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(Unit) {
         isChecking = true
         isRooted = RootUtils.isRootAvailable()
         isChecking = false
         isRootChecked = true
     }
-    
+
     when {
         isChecking -> {
             LoadingScreen(message = "Đang kiểm tra quyền root...")
@@ -58,14 +63,15 @@ fun AppContent() {
         !isRootChecked || !isRooted -> {
             RootRequestScreen(
                 onRequestRoot = {
-                    // Yêu cầu root bằng cách thử lại
-                    isRooted = RootUtils.isRootAvailable()
-                    if (!isRooted) {
-                        Toast.makeText(
-                            getApplicationContext(),
-                            "Cần quyền root để sử dụng app này!",
-                            Toast.LENGTH_LONG
-                        ).show()
+                    scope.launch {
+                        isRooted = RootUtils.isRootAvailable()
+                        if (!isRooted) {
+                            Toast.makeText(
+                                context,
+                                "Cần quyền root để sử dụng app này!",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     }
                 }
             )

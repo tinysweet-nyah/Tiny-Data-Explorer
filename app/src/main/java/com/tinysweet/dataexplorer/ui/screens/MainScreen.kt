@@ -1,31 +1,23 @@
 package com.tinysweet.dataexplorer.ui.screens
 
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.rememberNavigationBarState
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberSaveable
 import androidx.compose.ui.Modifier
-import com.tinysweet.dataexplorer.R
-import com.tinysweet.dataexplorer.ui.components.LoadingScreen
-import com.tinysweet.dataexplorer.ui.theme.Theme
-import com.tinysweet.dataexplorer.ui.utils.Icons
+import com.tinysweet.dataexplorer.ui.theme.RootForgeDataExplorerTheme
+import com.tinysweet.dataexplorer.ui.utils.AppIcons
 
 @Composable
 fun MainScreen() {
-    val scaffoldState = rememberScaffoldState()
     val tabState = remember { mutableStateOf(0) }
-    
+
     Scaffold(
-        scaffoldState = scaffoldState,
         bottomBar = {
             BottomNavigation(tabState)
         }
@@ -41,26 +33,26 @@ fun MainScreen() {
 }
 
 @Composable
-fun BottomNavigation(tabState: androidx.compose.runtime.MutableState<Int>) {
+fun BottomNavigation(tabState: MutableState<Int>) {
     NavigationBar {
         NavigationBarItem(
             selected = tabState.value == 0,
             onClick = { tabState.value = 0 },
-            icon = { icons.AppIcon() },
+            icon = { androidx.compose.material3.Icon(AppIcons.AppIcon, contentDescription = null) },
             label = { Text(text = "Apps") }
         )
         
         NavigationBarItem(
             selected = tabState.value == 1,
             onClick = { tabState.value = 1 },
-            icon = { icons.FolderIcon() },
+            icon = { androidx.compose.material3.Icon(AppIcons.FolderIcon, contentDescription = null) },
             label = { Text(text = "File Browser") }
         )
         
         NavigationBarItem(
             selected = tabState.value == 2,
             onClick = { tabState.value = 2 },
-            icon = { icons.ToolsIcon() },
+            icon = { androidx.compose.material3.Icon(AppIcons.ToolsIcon, contentDescription = null) },
             label = { Text(text = "Tools") }
         )
     }
