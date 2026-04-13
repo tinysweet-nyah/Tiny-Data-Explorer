@@ -382,10 +382,10 @@ fun escapeXml(value: String): String {
     val builder = StringBuilder(value.length)
     value.forEach { ch ->
         when (ch) {
-            '&' -> builder.append("&")
-            '<' -> builder.append("<")
-            '>' -> builder.append(">")
-            34.toChar() -> builder.append(""")
+            '&' -> builder.append("&amp;")
+            '<' -> builder.append("&lt;")
+            '>' -> builder.append("&gt;")
+            34.toChar() -> builder.append("\"")
             39.toChar() -> builder.append("'")
             else -> builder.append(ch)
         }
