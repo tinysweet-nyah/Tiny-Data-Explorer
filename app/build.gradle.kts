@@ -1,14 +1,15 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
-    namespace = "com.example.rootforgedataexplorer"
+    namespace = "com.ddatios.rootforge"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.rootforgedataexplorer"
+        applicationId = "com.ddatios.rootforge"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -29,20 +30,25 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
         jvmTarget = "17"
     }
+
     buildFeatures {
         compose = true
     }
+
     composeOptions {
         kotlinCompilerExtensionVersion = "1.6.10"
     }
-    packagingOptions {
+
+    packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
@@ -60,21 +66,23 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
-    implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
-    
-    // libsu for root
-    implementation("com.github.topjohnwu:libsu:1.0.9")
-    
-    // For SQLite
+
+    // Root - Libsu (dùng version mới nhất ổn định)
+    implementation("com.github.topjohnwu:libsu:6.0.0")
+
+    // SQLite
     implementation("androidx.sqlite:sqlite:2.4.0")
     implementation("androidx.sqlite:sqlite-framework:2.4.0")
-    
-    // For JSON parsing
+
+    // JSON & Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.0")
-    
-    // For coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
-    
-    // For Material 3 dynamic color
-    implementation("androidx.core:core-splashscreen:1.2.0")
+
+    // Testing
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.6.10")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.6.10")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.6.10")
 }
