@@ -1,4 +1,4 @@
-package com.example.rootforgedataexplorer.ui.components
+package com.tinysweet.dataexplorer.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,7 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.rootforgedataexplorer.utils.AppInfo
+import com.tinysweet.dataexplorer.utils.AppInfo
 
 /**
  * RecentAppsComponent - Hiển thị ứng dụng gần đây

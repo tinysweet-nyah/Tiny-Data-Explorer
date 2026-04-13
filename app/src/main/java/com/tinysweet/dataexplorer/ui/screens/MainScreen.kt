@@ -1,4 +1,4 @@
-package com.example.rootforgedataexplorer.ui.screens
+package com.tinysweet.dataexplorer.ui.screens
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.NavigationBar
@@ -14,10 +14,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberSaveable
 import androidx.compose.ui.Modifier
-import com.example.rootforgedataexplorer.R
-import com.example.rootforgedataexplorer.ui.components.LoadingScreen
-import com.example.rootforgedataexplorer.ui.theme.RootForgeDataExplorerTheme
-import com.example.rootforgedataexplorer.ui.utils.icons
+import com.tinysweet.dataexplorer.R
+import com.tinysweet.dataexplorer.ui.components.LoadingScreen
+import com.tinysweet.dataexplorer.ui.theme.Theme
+import com.tinysweet.dataexplorer.ui.utils.Icons
 
 @Composable
 fun MainScreen() {

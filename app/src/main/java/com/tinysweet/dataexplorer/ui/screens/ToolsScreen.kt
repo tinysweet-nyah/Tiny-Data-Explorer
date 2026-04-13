@@ -1,4 +1,4 @@
-package com.example.rootforgedataexplorer.ui.screens
+package com.tinysweet.dataexplorer.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -6,8 +6,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.rootforgedataexplorer.ui.components.LoadingScreen
-import com.example.rootforgedataexplorer.ui.utils.icons
+import com.tinysweet.dataexplorer.ui.components.LoadingScreen
+import com.tinysweet.dataexplorer.ui.utils.Icons
 
 /**
  * ToolsScreen - Công cụ nâng cao

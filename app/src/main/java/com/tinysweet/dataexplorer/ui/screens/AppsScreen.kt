@@ -1,4 +1,4 @@
-package com.example.rootforgedataexplorer.ui.screens
+package com.tinysweet.dataexplorer.ui.screens
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.rootforgedataexplorer.utils.AppInfo
+import com.tinysweet.dataexplorer.utils.AppInfo
 
 /**
  * AppsScreen - Hiển thị danh sách tất cả ứng dụng

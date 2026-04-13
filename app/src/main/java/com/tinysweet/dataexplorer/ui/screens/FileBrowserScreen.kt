@@ -1,4 +1,4 @@
-package com.example.rootforgedataexplorer.ui.screens
+package com.tinysweet.dataexplorer.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,8 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.rootforgedataexplorer.utils.FileInfo
-import com.example.rootforgedataexplorer.utils.RootUtils
+import com.tinysweet.dataexplorer.utils.FileInfo
+import com.tinysweet.dataexplorer.utils.RootUtils
 import kotlinx.coroutines.launch
 
 /**

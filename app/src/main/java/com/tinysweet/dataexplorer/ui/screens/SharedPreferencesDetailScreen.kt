@@ -1,4 +1,4 @@
-package com.example.rootforgedataexplorer.ui.screens
+package com.tinysweet.dataexplorer.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.rootforgedataexplorer.utils.RootUtils
+import com.tinysweet.dataexplorer.utils.RootUtils
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.StringReader

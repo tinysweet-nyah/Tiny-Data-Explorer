@@ -1,4 +1,4 @@
-package com.example.rootforgedataexplorer.ui.components
+package com.tinysweet.dataexplorer.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

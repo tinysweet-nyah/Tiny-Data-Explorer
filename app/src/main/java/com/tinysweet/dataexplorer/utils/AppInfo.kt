@@ -1,4 +1,4 @@
-package com.example.rootforgedataexplorer.utils
+package com.tinysweet.dataexplorer.utils
 
 import android.graphics.Bitmap
 
