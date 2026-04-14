@@ -11,7 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
-import com.tinysweet.dataexplorer.ui.theme.RootForgeDataExplorerTheme
+import com.tinysweet.dataexplorer.ui.theme.TinyDataExplorerTheme
 import com.tinysweet.dataexplorer.ui.components.LoadingScreen
 import com.tinysweet.dataexplorer.ui.components.RootRequestScreen
 import com.tinysweet.dataexplorer.ui.screens.MainScreen
@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         setContent {
-            RootForgeDataExplorerTheme {
+            TinyDataExplorerTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

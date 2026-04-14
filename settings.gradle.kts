@@ -15,5 +15,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "RootForgeDataExplorer"
+rootProject.name = "TinyDataExplorer"
 include(":app")
