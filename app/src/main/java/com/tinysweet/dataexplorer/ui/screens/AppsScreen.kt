@@ -3,6 +3,10 @@ package com.tinysweet.dataexplorer.ui.screens
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,13 +24,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
@@ -41,17 +45,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tinysweet.dataexplorer.utils.AppInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppsScreen(modifier: Modifier = Modifier) {
+fun AppsScreen(
+    modifier: Modifier = Modifier,
+    onAppClick: (packageName: String, appName: String) -> Unit = { _, _ -> }
+) {
     var searchQuery by remember { mutableStateOf("") }
     var apps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
     var filteredApps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    var isGridView by remember { mutableStateOf(true) }
 
     val context = LocalContext.current
 
@@ -87,17 +94,6 @@ fun AppsScreen(modifier: Modifier = Modifier) {
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) { }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.End
-        ) {
-            IconButton(onClick = { isGridView = !isGridView }) {
-                Text(text = if (isGridView) "List" else "Grid")
-            }
-        }
-
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -114,8 +110,7 @@ fun AppsScreen(modifier: Modifier = Modifier) {
                 items(filteredApps, key = { it.packageName }) { app ->
                     AppCard(
                         app = app,
-                        isGridView = isGridView,
-                        onClick = { }
+                        onClick = { onAppClick(app.packageName, app.name) }
                     )
                 }
             }
@@ -126,84 +121,56 @@ fun AppsScreen(modifier: Modifier = Modifier) {
 @Composable
 fun AppCard(
     app: AppInfo,
-    isGridView: Boolean,
     onClick: () -> Unit
 ) {
-    if (isGridView) {
-        Card(
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                app.icon?.let {
-                    Image(
-                        bitmap = it.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
+            if (app.icon != null) {
+                Image(
+                    bitmap = app.icon.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.size(44.dp)
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Android,
+                    contentDescription = null,
+                    modifier = Modifier.size(44.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = app.name,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = app.packageName,
                     style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1
-                )
-                Text(
-                    text = "v${app.versionName}",
-                    style = MaterialTheme.typography.bodySmall
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-        }
-    } else {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                app.icon?.let {
-                    Image(
-                        bitmap = it.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = app.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = app.packageName,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                Text(
-                    text = "v${app.versionName}",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
+            Text(
+                text = "v${app.versionName}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -214,11 +181,30 @@ fun loadApps(context: Context): List<AppInfo> {
 
     return packages.mapNotNull { appInfo ->
         try {
+            val drawable = pm.getApplicationIcon(appInfo)
+            val bitmap = when (drawable) {
+                is BitmapDrawable -> drawable.bitmap
+                is AdaptiveIconDrawable -> {
+                    val bmp = Bitmap.createBitmap(
+                        drawable.intrinsicWidth.coerceAtLeast(1),
+                        drawable.intrinsicHeight.coerceAtLeast(1),
+                        Bitmap.Config.ARGB_8888
+                    )
+                    val canvas = Canvas(bmp)
+                    drawable.setBounds(0, 0, canvas.width, canvas.height)
+                    drawable.draw(canvas)
+                    bmp
+                }
+                else -> null
+            }
+
             AppInfo(
                 name = pm.getApplicationLabel(appInfo).toString(),
                 packageName = appInfo.packageName,
-                versionName = pm.getPackageInfo(appInfo.packageName, 0).versionName ?: "Unknown",
-                icon = (pm.getApplicationIcon(appInfo) as? android.graphics.drawable.BitmapDrawable)?.bitmap,
+                versionName = try {
+                    pm.getPackageInfo(appInfo.packageName, 0).versionName ?: "?"
+                } catch (_: Exception) { "?" },
+                icon = bitmap,
                 isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
             )
         } catch (_: Exception) {

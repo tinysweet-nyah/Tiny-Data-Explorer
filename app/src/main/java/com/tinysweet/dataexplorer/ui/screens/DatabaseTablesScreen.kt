@@ -2,7 +2,18 @@ package com.tinysweet.dataexplorer.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -12,20 +23,41 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.TableChart
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tinysweet.dataexplorer.utils.RootUtils
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatabaseTablesScreen(
     modifier: Modifier = Modifier,
     databasePath: String,
-    databaseName: String
+    databaseName: String,
+    onBack: () -> Unit = {}
 ) {
     var tables by remember { mutableStateOf<List<TableInfo>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
@@ -58,13 +90,8 @@ fun DatabaseTablesScreen(
             CenterAlignedTopAppBar(
                 title = { Text(databaseName) },
                 navigationIcon = {
-                    IconButton(onClick = { }) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Code, contentDescription = "SQL Query")
                     }
                 }
             )
@@ -94,6 +121,27 @@ fun DatabaseTablesScreen(
                             text = errorMessage ?: "Lỗi không xác định",
                             color = MaterialTheme.colorScheme.error
                         )
+                    }
+                }
+
+                tables.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.TableChart,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Không tìm thấy bảng nào",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
                     }
                 }
 
@@ -175,6 +223,8 @@ fun TableDataScreen(
     var isLoading by remember { mutableStateOf(false) }
     var queryText by remember { mutableStateOf("") }
     var showQueryDialog by remember { mutableStateOf(false) }
+    var customQueryResult by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(tableName, databasePath) {
         isLoading = true
@@ -183,7 +233,7 @@ fun TableDataScreen(
             val schema = RootUtils.executeCommand(schemaQuery).joinToString("\n")
             columns = getColumnsFromSchema(schema)
 
-            val selectQuery = "sqlite3 '$databasePath' -separator '|' \"SELECT * FROM $tableName\""
+            val selectQuery = "sqlite3 '$databasePath' -separator '|' \"SELECT * FROM $tableName LIMIT 500\""
             val data = RootUtils.executeCommand(selectQuery).joinToString("\n")
             rows = parseSqliteData(data, columns.size)
         } catch (_: Exception) {
@@ -207,9 +257,6 @@ fun TableDataScreen(
                     IconButton(onClick = { showQueryDialog = true }) {
                         Icon(Icons.Default.Code, contentDescription = "SQL Query")
                     }
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Download, contentDescription = "Export CSV")
-                    }
                 }
             )
         }
@@ -226,7 +273,44 @@ fun TableDataScreen(
                 ) {
                     CircularProgressIndicator()
                 }
+            } else if (columns.isEmpty() && rows.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Bảng trống hoặc không thể đọc dữ liệu",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             } else {
+                // Custom query result
+                if (customQueryResult != null) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "Kết quả truy vấn:",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = customQueryResult ?: "",
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Column headers
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -245,6 +329,7 @@ fun TableDataScreen(
 
                 HorizontalDivider()
 
+                // Data rows
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -294,7 +379,32 @@ fun TableDataScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showQueryDialog = false }) {
+                TextButton(
+                    onClick = {
+                        if (queryText.isNotBlank()) {
+                            scope.launch {
+                                try {
+                                    val cmd = "sqlite3 '$databasePath' -separator '|' \"${queryText.replace("\"", "\\\"")}\""
+                                    val result = RootUtils.executeCommand(cmd)
+                                    customQueryResult = result.joinToString("\n").ifBlank { "Truy vấn thành công (không có kết quả)" }
+
+                                    // If it's a SELECT, try to update the table view
+                                    if (queryText.trim().startsWith("SELECT", ignoreCase = true)) {
+                                        rows = parseSqliteData(result.joinToString("\n"), columns.size)
+                                    } else {
+                                        // Re-load data after modification
+                                        val selectQuery = "sqlite3 '$databasePath' -separator '|' \"SELECT * FROM $tableName LIMIT 500\""
+                                        val data = RootUtils.executeCommand(selectQuery).joinToString("\n")
+                                        rows = parseSqliteData(data, columns.size)
+                                    }
+                                } catch (e: Exception) {
+                                    customQueryResult = "Lỗi: ${e.message}"
+                                }
+                            }
+                            showQueryDialog = false
+                        }
+                    }
+                ) {
                     Text("Thực thi")
                 }
             },

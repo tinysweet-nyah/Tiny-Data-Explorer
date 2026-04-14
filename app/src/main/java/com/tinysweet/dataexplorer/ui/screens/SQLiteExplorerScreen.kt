@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,7 +51,8 @@ import com.tinysweet.dataexplorer.utils.RootUtils
 fun SQLiteExplorerScreen(
     modifier: Modifier = Modifier,
     appPackageName: String,
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onDatabaseClick: (dbPath: String, dbName: String) -> Unit = { _, _ -> }
 ) {
     var databases by remember { mutableStateOf<List<DatabaseInfo>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
@@ -85,6 +87,14 @@ fun SQLiteExplorerScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Show package name
+            Text(
+                text = appPackageName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+
             when {
                 isLoading -> {
                     Box(
@@ -151,9 +161,7 @@ fun SQLiteExplorerScreen(
                         items(databases, key = { it.path }) { db ->
                             DatabaseItem(
                                 database = db,
-                                onClick = {
-                                    // TODO: điều hướng sang danh sách bảng
-                                }
+                                onClick = { onDatabaseClick(db.path, db.name) }
                             )
                         }
                     }
@@ -175,7 +183,7 @@ fun DatabaseItem(
             .padding(horizontal = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        androidx.compose.foundation.layout.Row(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
@@ -199,11 +207,6 @@ fun DatabaseItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(
-                    text = "Sửa đổi: ${database.lastModified.ifBlank { "Không rõ" }}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
             Icon(
                 imageVector = Icons.Default.ChevronRight,
@@ -220,7 +223,7 @@ suspend fun loadDatabases(packageName: String): List<DatabaseInfo> {
     val files = RootUtils.listDirectory(dbPath)
 
     return files
-        .filter { !it.isDirectory && it.name.endsWith(".db", ignoreCase = true) }
+        .filter { !it.isDirectory && (it.name.endsWith(".db", ignoreCase = true) || !it.name.contains("-journal")) }
         .map { file ->
             DatabaseInfo(
                 name = file.name,
